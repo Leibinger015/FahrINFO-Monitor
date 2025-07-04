@@ -174,14 +174,14 @@
     }
     
     footer a img {
-  display: inline-block;
-  vertical-align: middle;
+      display: inline-block;
+      vertical-align: middle;
     }
 
     footer a {
-  text-decoration: none;
-  border: none;
-  line-height: 0;
+      text-decoration: none;
+      border: none;
+      line-height: 0;
     }
 
     .gimmick .suggestion-box {
@@ -202,6 +202,12 @@
     .gimmick .suggestion-box div:hover {
       text-decoration: underline;
     }
+
+    /* Neue Favoriten-Styles */
+    .favorite-heart {
+      color: #ff4081;
+      margin-right: 5px;
+    }
   </style>
 </head>
 <body>
@@ -215,12 +221,10 @@
 <div class="spacer"></div>
 
 <div class="input-block">
-  <select class="styled-input" onchange="window.location.href=this.value">
-    
-       <option value="" selected disabled>☉ Favorisierte Haltestellen ...</option>
-    
-       <option value="lines/Gw_sbhf.html">Greifswalder Str. (nur S-Bahn)</option>
-
+  <select class="styled-input" id="favoritesDropdown">
+    <option value="" selected disabled>☉ Favorisierte Haltestellen ...</option>
+    <!-- Favoriten werden hier dynamisch eingefügt -->
+  </select>
   <input type="text" class="styled-input" placeholder="✍︎ Suche nach Haltestelle ..." id="stopSearch" />
 </div>
 
@@ -247,16 +251,68 @@
   <a href="https://anb030.de/a/">
     <img src="img/logo_anb030.png" alt="anb030 Logo" class="footer-logo"/>
   </a>
+
+<div style="margin-top: 20px; max-width: 500px; text-align: center;">
+  <div style="font-weight: bold; font-size: 10px; margin-bottom: 4px; color: #e9e9e9;">
+    Hinweis: Diese Seite verwendet Cookies, um Favoriten zu speichern.
+  </div>
+  <div style="font-size: 6px; line-height: 1.4; color: #aaaaaa;">
+    Diese WebApp verwendet ausschließlich technisch notwendige Cookies zur Speicherung Ihrer favorisierten Haltestellen.
+    Diese Daten werden ausschließlich lokal in Ihrem Browser gespeichert und nicht an Server übertragen.
+    Sie haben jederzeit die Möglichkeit, diese über die Einstellungen Ihres Browsers zu löschen.
+  </div>
+
   <div style="margin-top: 10px; font-size: 8px; color: #e9e9e9;">
     <a href="extra/stop_id.html" style="color: #e9e9e9; text-decoration: none; margin: 0 8px;">VBB Stop-ID Finder</a>
-    
     <a href="extra/hinweise_und_rechtliches.html" style="color: #e9e9e9; text-decoration: none; margin: 0 8px;">Allgemeines & Rechtliches</a>
     <br><br>
-    <a style="color: #e9e9e9; text-decoration: none; margin: 0 8px;">WebAPP-Version: 1.94 (20250630)</a>
+    <a style="color: #e9e9e9; text-decoration: none; margin: 0 8px;">WebAPP-Version: 2.10 (20250704)</a>
   </div>
 </footer>
 
 <script>
+  // Cookie-Helper-Funktionen
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
+
+  function setCookie(name, value, days = 365) {
+    const date = new Date();
+    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    document.cookie = `${name}=${value}; expires=${date.toUTCString()}; path=/`;
+  }
+
+  // Favoriten laden und Dropdown füllen
+  function loadFavorites() {
+    const favorites = JSON.parse(getCookie('favoriteStops') || '[]');
+    const dropdown = document.getElementById('favoritesDropdown');
+    
+    // Behalte den ersten Option (Placeholder)
+    while (dropdown.options.length > 1) {
+      dropdown.remove(1);
+    }
+    
+    favorites.forEach(fav => {
+      const option = document.createElement('option');
+      option.value = `lines/flex_search.html?stopId=${fav.id}&stopName=${encodeURIComponent(fav.name)}`;
+      option.textContent = `♥ ${fav.name}`;
+      dropdown.appendChild(option);
+    });
+  }
+
+  // Initial Favoriten laden
+  document.addEventListener('DOMContentLoaded', loadFavorites);
+
+  // Event-Listener für das Dropdown
+  document.getElementById('favoritesDropdown').addEventListener('change', function() {
+    if (this.value) {
+      window.location.href = this.value;
+    }
+  });
+
+  // Bestehende Suchfunktionalität
   document.addEventListener('DOMContentLoaded', function () {
     const searchInput = document.getElementById('stopSearch');
     const gimmick = document.getElementById('gimmick');
@@ -305,6 +361,5 @@
     });
   });
 </script>
-
 </body>
 </html>

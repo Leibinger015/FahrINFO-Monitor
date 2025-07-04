@@ -47,14 +47,12 @@
       text-align: center;
     }
 
-    /* Kreisform für M, U, S, B */
     .line-M, .line-U, .line-S, .line-B {
       width: 38px;
       height: 38px;
       border-radius: 50%;
     }
 
-    /* Rechteckform für default */
     .line-default {
       min-width: 38px;
       height: 38px;
@@ -64,12 +62,11 @@
       color: red !important;
     }
 
-    /* Farben */
-    .line-M { background-color: #D82020; } /* Tram */
-    .line-U { background-color: #0664AB; } /* U-Bahn */
-    .line-S { background-color: #008940; } /* S-Bahn */
-    .line-B { background-color: #A5027D; } /* Bus (alte default-Farbe) */
-    .line-default { background-color: white; } /* Züge */
+    .line-M { background-color: #D82020; }
+    .line-U { background-color: #0664AB; }
+    .line-S { background-color: #008940; }
+    .line-B { background-color: #A5027D; }
+    .line-default { background-color: white; }
 
     .direction {
       font-weight: bold;
@@ -186,6 +183,22 @@
       color: #bbbbbb;
       padding-top: 5px;
     }
+
+    /* Neue Favoriten-Styles */
+    #toggleFavorite {
+      color: #ff4081 !important;
+      border-color: #ff4081 !important;
+      margin-bottom: 15px !important;
+    }
+
+    #toggleFavorite:hover {
+      color: #ff79b0 !important;
+      border-color: #ff79b0 !important;
+    }
+
+    .favorited {
+      background-color: rgba(255, 64, 129, 0.1) !important;
+    }
   </style>
 </head>
 <body>
@@ -193,13 +206,40 @@
   <div id="departures">Einen Moment bitte!<br>Die neuesten API-Daten werden geladen.</div>
 
   <footer>
+    <div><a href="#" id="toggleFavorite" class="back-button">♥ Zu Favoriten hinzufügen</a></div>
     <div><a href="../" class="back-button">Zurück</a></div>
     <div class="disclaimer">Alle Angaben ohne Gewähr</div>
+
+<div style="margin-top: 20px; max-width: 500px; text-align: center;">
+  <div style="font-weight: bold; font-size: 10px; margin-bottom: 4px; color: #e9e9e9;">
+    Hinweis: Diese Seite verwendet Cookies, um Favoriten zu speichern.
+  </div>
+  <div style="font-size: 6px; line-height: 1.4; color: #aaaaaa;">
+    Diese WebApp verwendet ausschließlich technisch notwendige Cookies zur Speicherung Ihrer favorisierten Haltestellen.
+    Diese Daten werden ausschließlich lokal in Ihrem Browser gespeichert und nicht an Server übertragen.
+    Sie haben jederzeit die Möglichkeit, diese über die Einstellungen Ihres Browsers zu löschen.
+  </div>
+</div>
+
     <div>API-Quelle: <a href="https://v6.vbb.transport.rest/" target="_blank">v6.vbb.transport.rest</a></div>
     <div>© by www.anb030.de</div>
+
   </footer>
 
   <script>
+    // Cookie-Helper-Funktionen
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    function setCookie(name, value, days = 365) {
+      const date = new Date();
+      date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+      document.cookie = `${name}=${value}; expires=${date.toUTCString()}; path=/`;
+    }
+
     // Get parameters from URL
     const urlParams = new URLSearchParams(window.location.search);
     const STOP_ID = urlParams.get('stopId') || "900110020";
@@ -208,12 +248,65 @@
     // Set the title
     document.getElementById('stopTitle').textContent = STOP_NAME + (STOP_NAME.includes('(Berlin)') ? '' : ' (…)');
     
+    // Überprüfe ob diese Haltestelle ein Favorit ist
+    function checkIfFavorite() {
+      const favorites = JSON.parse(getCookie('favoriteStops') || '[]');
+      return favorites.some(f => f.id === STOP_ID);
+    }
+
+    // Aktualisiere den Favoriten-Button
+    function updateFavoriteButton() {
+      const isFavorite = checkIfFavorite();
+      const button = document.getElementById('toggleFavorite');
+      button.textContent = isFavorite ? '♥ Favorit entfernen' : '♥ Zu Favoriten hinzufügen';
+      button.classList.toggle('favorited', isFavorite);
+    }
+
+    // Favorit hinzufügen/entfernen
+    function toggleFavorite() {
+      const favorites = JSON.parse(getCookie('favoriteStops') || '[]');
+      const stopName = STOP_NAME.replace(' (…)', '');
+      
+      const existingIndex = favorites.findIndex(f => f.id === STOP_ID);
+      
+      if (existingIndex >= 0) {
+        // Entfernen
+        favorites.splice(existingIndex, 1);
+        setCookie('favoriteStops', JSON.stringify(favorites));
+        alert(`${stopName} wurde aus Favoriten entfernt!`);
+      } else {
+        // Hinzufügen
+        favorites.push({ id: STOP_ID, name: stopName });
+        setCookie('favoriteStops', JSON.stringify(favorites));
+        alert(`♥ ${stopName} wurde zu Favoriten hinzugefügt!`);
+      }
+      
+      // Aktualisiere den Button
+      updateFavoriteButton();
+      
+      // Aktualisiere die Startseite über ein verstecktes iframe
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = '../';
+      document.body.appendChild(iframe);
+      setTimeout(() => iframe.remove(), 1000);
+    }
+
+    // Event-Listener für den Favoriten-Button
+    document.getElementById('toggleFavorite').addEventListener('click', function(e) {
+      e.preventDefault();
+      toggleFavorite();
+    });
+
+    // Initialen Button-Status setzen
+    document.addEventListener('DOMContentLoaded', updateFavoriteButton);
+
+    // Rest der bestehenden Abfahrtsfunktionalität
     const API_URL = `https://v6.vbb.transport.rest/stops/${STOP_ID}/departures?duration=360&includeCancelled=true`;
     const MAX_RESULTS = 8;
-    const MAX_CANCELLED = 2; // Maximale Anzahl von "Fällt aus"-Meldungen
-    const MAX_DEPARTED = 0;  // Maximale Anzahl von "Abgefahren"-Meldungen
+    const MAX_CANCELLED = 2;
+    const MAX_DEPARTED = 0;
 
-    // Übersetzungen für englische Bemerkungen
     const remarkTranslations = {
       "cancelled": "Fällt aus",
       "Severe weather warning: The service is currently limited in entire city area.": "Unwetterwarnung: Der ÖPNV ist derzeit im gesamten Stadtgebiet unregelmäßig.",
@@ -244,22 +337,11 @@
     };
 
     function getLineClass(lineName) {
-      // U-Bahn (beginnt immer mit U)
       if (/^U\d+/.test(lineName)) return 'line-U';
-      
-      // S-Bahn (beginnt immer mit S)
       if (/^S\d+/.test(lineName)) return 'line-S';
-      
-      // Tram (beginnt mit M gefolgt von 1-17, oder nur Zahlen)
       if (/^(M[1-9]|M1[0-7]|\d{2})$/.test(lineName)) return 'line-M';
-      
-      // Bus (beginnt mit M19+, X, N, RV oder 3-stellige Zahlen)
       if (/^(M1[89]|M[2-9]\d|M\d{3,}|X\d+|N\d+|RV\d+|\d{3,})$/.test(lineName)) return 'line-B';
-      
-      // Züge (ICE, IC, EC, etc.)
       if (/^(ICE|IC|EC|EN|IRE|FEX|FLX|RE|RB|RS|RJ|RZ|SC|NJ|PE|HP|HLB|ME|MRB|NE|NWB|OPB|OS|RT|SE|SH|STB|SRS|TB|VBR|VIA|WB|WFB|X).*/.test(lineName)) return 'line-default';
-      
-      // Fallback (sollte eigentlich nicht vorkommen)
       return 'line-default';
     }
 
@@ -301,17 +383,16 @@
       if (!remarks) return null;
       
       return remarks.map(remark => {
-        if (!remark || !remark.text) return null; // Sicherheitsprüfung
+        if (!remark || !remark.text) return null;
         let text = remark.text;
         
-        // Übersetze englische Bemerkungen
         for (const [en, de] of Object.entries(remarkTranslations)) {
           if (text.toLowerCase().includes(en.toLowerCase())) {
             text = text.replace(new RegExp(en, 'i'), de);
           }
         }
         return text;
-      }).filter(Boolean); // Entfernt alle null/undefined Einträge
+      }).filter(Boolean);
     }
 
     function formatRemarks(remarks) {
@@ -344,12 +425,10 @@
             const countdown = formatCountdown(dep);
             const isDeparted = countdown === null && !dep.cancelled;
             
-            // Überspringe zusätzliche "Fällt aus"-Meldungen, wenn wir bereits MAX_CANCELLED erreicht haben
             if (dep.cancelled && cancelledCount >= MAX_CANCELLED) {
               return;
             }
             
-            // Überspringe zusätzliche "Abgefahren"-Meldungen, wenn wir bereits MAX_DEPARTED erreicht haben
             if (isDeparted && departedCount >= MAX_DEPARTED) {
               return;
             }

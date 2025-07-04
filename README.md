@@ -1,4 +1,7 @@
 Mein FahrINFO-Monitor Projekt!
+
+Zum Projekt: https://anb030.de/a/fahrinfo-monitor-skript/
+
 Demo: https://anb030.de/app.fahrinfo/
 
 ![Icon](https://github.com/user-attachments/assets/6605b1b8-904f-4909-92db-a3a9210acea0)
